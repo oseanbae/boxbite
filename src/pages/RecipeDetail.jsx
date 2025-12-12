@@ -70,12 +70,12 @@ export default function RecipeDetail() {
   if (!recipe) {
     return (
       <section className="pt-10">
-        <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-6 text-rose-100">
+        <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-6 text-rose-700 dark:text-rose-100">
           Recipe not found.
         </div>
         <button
           onClick={() => navigate('/')}
-          className="mt-4 text-sm font-semibold text-fuchsia-300 underline"
+          className="mt-4 text-sm font-semibold text-fuchsia-600 underline dark:text-fuchsia-300"
         >
           Go back
         </button>
@@ -100,16 +100,16 @@ export default function RecipeDetail() {
           <div className="flex flex-1 flex-col gap-4 p-6 lg:p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
                   {recipe.category} • {recipe.area || 'Global'}
                 </p>
-                <h2 className="text-3xl font-bold text-white">{recipe.name}</h2>
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-white">{recipe.name}</h2>
                 {recipe.tags?.length ? (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {recipe.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full bg-fuchsia-500/15 px-3 py-1 text-xs font-medium text-fuchsia-200"
+                        className="rounded-full bg-fuchsia-500/15 px-3 py-1 text-xs font-medium text-fuchsia-700 dark:text-fuchsia-200"
                       >
                         {tag}
                       </span>
@@ -128,32 +128,32 @@ export default function RecipeDetail() {
             </div>
             <div className="grid gap-6 lg:grid-cols-2">
               <div>
-                <h3 className="mb-3 text-lg font-semibold text-white">
+                <h3 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">
                   Ingredients
                 </h3>
-                <ul className="space-y-2 text-sm text-slate-200">
+                <ul className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
                   {ingredients.map((item) => (
                     <li
                       key={`${item.ingredient}-${item.measure}`}
-                      className="flex items-center gap-3 rounded-lg bg-slate-900/60 px-3 py-2"
+                      className="flex items-center gap-3 rounded-lg bg-slate-100 px-3 py-2 dark:bg-slate-900/60"
                     >
                       <span className="h-2 w-2 rounded-full bg-fuchsia-400" />
                       <span className="flex-1">{item.ingredient}</span>
-                      <span className="text-slate-400">{item.measure}</span>
+                      <span className="text-slate-500 dark:text-slate-400">{item.measure}</span>
                     </li>
                   ))}
                 </ul>
               </div>
               <div>
-                <h3 className="mb-3 text-lg font-semibold text-white">
+                <h3 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">
                   Instructions
                 </h3>
-                <div className="space-y-3 text-sm leading-relaxed text-slate-200">
+                <div className="space-y-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
                   {recipe.instructions
                     ?.split('\n')
                     .filter((line) => line.trim().length)
                     .map((line, idx) => (
-                      <p key={idx} className="rounded-lg bg-slate-900/60 p-3">
+                      <p key={idx} className="rounded-lg bg-slate-100 p-3 dark:bg-slate-900/60">
                         {line}
                       </p>
                     ))}
@@ -164,7 +164,7 @@ export default function RecipeDetail() {
         </div>
       </div>
       {toast ? (
-        <div className="fixed bottom-6 right-6 rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-fuchsia-200 shadow-lg shadow-fuchsia-900/40">
+        <div className="fixed bottom-6 right-6 rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-fuchsia-200 shadow-lg shadow-fuchsia-900/40 dark:bg-slate-800">
           {toast}
         </div>
       ) : null}

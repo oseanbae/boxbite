@@ -26,7 +26,7 @@ export default function IngredientInput({ onAdd, ingredients = [] }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Add an ingredient..."
-            className="flex-1 rounded-lg border border-white/10 bg-slate-900 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-fuchsia-400 focus:outline-none"
+            className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 focus:border-fuchsia-400 focus:outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
           />
           <button
             type="submit"
@@ -43,7 +43,7 @@ export default function IngredientInput({ onAdd, ingredients = [] }) {
           {ingredients.map((ingredient) => (
             <span
               key={ingredient}
-              className="group inline-flex items-center gap-2 rounded-full bg-fuchsia-500/15 px-4 py-2 text-sm font-medium text-fuchsia-200 transition hover:bg-fuchsia-500/25"
+              className="group inline-flex items-center gap-2 rounded-full bg-fuchsia-500/15 px-4 py-2 text-sm font-medium text-fuchsia-700 transition hover:bg-fuchsia-500/25 dark:text-fuchsia-200"
             >
               {ingredient}
               <button
@@ -62,7 +62,7 @@ export default function IngredientInput({ onAdd, ingredients = [] }) {
         <div className="mt-4 flex gap-2">
           <button
             onClick={() => onAdd([])}
-            className="rounded-lg border border-white/10 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-800"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Clear All
           </button>

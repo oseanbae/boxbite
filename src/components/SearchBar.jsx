@@ -14,7 +14,7 @@ export default function SearchBar({ value, onChange, onSubmit, isLoading = false
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Search recipes by name..."
-          className="flex-1 rounded-lg border border-white/10 bg-slate-900 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-fuchsia-400 focus:outline-none"
+          className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 focus:border-fuchsia-400 focus:outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
           disabled={isLoading}
         />
         <button

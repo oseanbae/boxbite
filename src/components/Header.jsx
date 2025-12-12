@@ -2,7 +2,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 
 const navLinkClass =
-  'px-4 py-2 text-sm font-semibold text-slate-200 transition hover:text-fuchsia-300'
+  'px-4 py-2 text-sm font-semibold text-slate-600 transition hover:text-fuchsia-300 dark:text-slate-200'
 
 export default function Header() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -25,15 +25,15 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/5 bg-slate-950/80 backdrop-blur dark:bg-slate-950/80">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-white/5 dark:bg-slate-950/80">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Link to="/" className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-amber-400 shadow-lg shadow-fuchsia-900/50" />
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
               Recipe discovery
             </p>
-            <h1 className="text-lg font-bold text-white">
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white">
               Box
               <span className="bg-gradient-to-r from-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
                 Bite
@@ -84,7 +84,7 @@ export default function Header() {
           </NavLink>
           <button
             onClick={toggleDarkMode}
-            className="ml-2 rounded-lg p-2 text-slate-200 transition hover:bg-white/5 hover:text-fuchsia-300"
+            className="ml-2 rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 hover:text-fuchsia-300 dark:text-slate-200 dark:hover:bg-white/5"
             aria-label="Toggle dark mode"
           >
             {darkMode ? '🌙' : '☀️'}

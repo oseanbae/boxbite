@@ -39,20 +39,20 @@ export default function Favorites() {
   return (
     <section className="pt-10">
       <div className="mb-6">
-        <p className="text-sm uppercase tracking-[0.25em] text-fuchsia-300">
+        <p className="text-sm uppercase tracking-[0.25em] text-fuchsia-600 dark:text-fuchsia-300">
           Favorites
         </p>
-        <h2 className="text-3xl font-bold text-white sm:text-4xl">
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">
           Your saved dishes
         </h2>
-        <p className="max-w-2xl text-slate-300">
+        <p className="max-w-2xl text-slate-600 dark:text-slate-300">
           Saved recipes live in Firestore when authenticated. Otherwise they sit
           safely in your browser using localStorage.
         </p>
       </div>
 
       {feedback ? (
-        <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+        <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-100">
           {feedback}
         </div>
       ) : null}
@@ -62,7 +62,7 @@ export default function Favorites() {
           {Array.from({ length: 6 }).map((_, idx) => (
             <div
               key={idx}
-              className="glass h-64 animate-pulse rounded-xl bg-slate-900/80"
+              className="glass h-64 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-900/80"
             />
           ))}
         </div>
@@ -80,7 +80,7 @@ export default function Favorites() {
                       e.stopPropagation()
                       handleRemove(recipe.id)
                     }}
-                    className="flex-1 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-slate-700"
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
                     Remove
                   </button>
@@ -99,11 +99,11 @@ export default function Favorites() {
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-white/5 bg-slate-900/70 px-4 py-6 text-slate-200">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-slate-700 dark:border-white/5 dark:bg-slate-900/70 dark:text-slate-200">
           <p>No favorites yet. Save a recipe to get started.</p>
           <button
             onClick={() => navigate('/')}
-            className="mt-3 text-sm font-semibold text-fuchsia-300 underline"
+            className="mt-3 text-sm font-semibold text-fuchsia-600 underline dark:text-fuchsia-300"
           >
             Browse recipes
           </button>
