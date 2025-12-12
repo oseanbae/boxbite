@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import PlannerDay from '../components/PlannerDay'
+import PlannerSlot from '../components/PlannerSlot'
 import useMealDB from '../hooks/useMealDB'
 import { weeklyPlan } from '../utils/weeklyPlan'
+import { savePlanToFirestore, loadPlanFromFirestore } from '../firebase/config'
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner']
 
 /**
@@ -18,9 +18,39 @@ function createEmptySlots() {
   }))
 }
 
+/**
+ * Calculate weekStart (Monday at 00:00:00) for a given date
+ */
+function getWeekStart(date = new Date()) {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  const dayOfWeek = d.getDay()
+  const diff = d.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Adjust when day is Sunday
+  d.setDate(diff)
+  return d.toISOString()
+}
+
+/**
+ * Get date for a specific day index (0-6) from weekStart
+ */
+function getDateForDay(weekStart, dayIndex) {
+  const start = new Date(weekStart)
+  start.setDate(start.getDate() + dayIndex)
+  return start
+}
+
+/**
+ * Firestore Schema:
+ * Collection: users/{uid}/weekly_plans/{planId}
+ * Document: { id, createdAt, weekStart, name?, categories, slots: [7 items] }
+ */
+
 export default function Planner() {
   const navigate = useNavigate()
   const { getMultipleRandom, getCategories, getFilteredRecipes, getMultipleByCategories, getRandomRecipe, getRecipeById } = useMealDB()
+  
+  // Current working plan state
+  const [currentPlan, setCurrentPlan] = useState(null)
   const [weeklySlots, setWeeklySlots] = useState(createEmptySlots())
   const [categories, setCategories] = useState([])
   const [selectedCategories, setSelectedCategories] = useState([])
@@ -29,35 +59,104 @@ export default function Planner() {
   const [savedPlans, setSavedPlans] = useState([])
   const [showSaved, setShowSaved] = useState(false)
   const [feedback, setFeedback] = useState('')
-  const uid = null
+  const uid = null // TODO: Replace with actual auth uid when available
 
+  // Load current plan from localStorage on mount
   useEffect(() => {
+    const loadCurrentPlan = async () => {
+      try {
+        // Try to load current working plan
+        const saved = weeklyPlan.getCurrent()
+        if (saved && saved.slots) {
+          setCurrentPlan(saved)
+          setWeeklySlots(saved.slots)
+          setSelectedCategories(saved.categories || [])
+        } else {
+          // Initialize new plan
+          const weekStart = getWeekStart()
+          const newPlan = {
+            id: null,
+            createdAt: new Date().toISOString(),
+            weekStart,
+            categories: [],
+            slots: createEmptySlots(),
+          }
+          setCurrentPlan(newPlan)
+          weeklyPlan.saveCurrent(newPlan)
+        }
+
+        // Load saved plans list
+        const plans = weeklyPlan.get()
+        setSavedPlans(plans)
+      } catch (error) {
+        console.error('Error loading current plan:', error)
+      }
+    }
+
+    loadCurrentPlan()
+
+    // Load categories
     const loadCategories = async () => {
       const cats = await getCategories()
       setCategories(cats)
     }
     loadCategories()
-
-    const loadSaved = async () => {
-      const plans = weeklyPlan.get()
-      setSavedPlans(plans)
-    }
-    loadSaved()
   }, [getCategories])
+
+  // Persist current plan to localStorage whenever it changes
+  const persistCurrentPlan = useCallback(() => {
+    if (currentPlan) {
+      const updated = {
+        ...currentPlan,
+        slots: weeklySlots,
+        categories: selectedCategories,
+      }
+      setCurrentPlan(updated)
+      weeklyPlan.saveCurrent(updated)
+      
+      // Also save to Firestore if uid exists
+      if (uid) {
+        savePlanToFirestore(uid, updated).catch((err) => {
+          console.warn('Failed to save to Firestore:', err)
+        })
+      }
+    }
+  }, [currentPlan, weeklySlots, selectedCategories, uid])
+
+  // Update weeklySlots and persist
+  const updateSlots = useCallback((newSlots) => {
+    setWeeklySlots(newSlots)
+    // Persist after state update
+    setTimeout(() => {
+      if (currentPlan) {
+        const updated = {
+          ...currentPlan,
+          slots: newSlots,
+          categories: selectedCategories,
+        }
+        setCurrentPlan(updated)
+        weeklyPlan.saveCurrent(updated)
+        if (uid) {
+          savePlanToFirestore(uid, updated).catch((err) => {
+            console.warn('Failed to save to Firestore:', err)
+          })
+        }
+      }
+    }, 0)
+  }, [currentPlan, selectedCategories, uid])
 
   // Toggle category selection
   const handleCategoryToggle = (category) => {
     setSelectedCategories((prev) => {
-      if (prev.includes(category)) {
-        return prev.filter((c) => c !== category)
-      } else {
-        return [...prev, category]
-      }
+      const newCategories = prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
+      return newCategories
     })
   }
 
   // Generate entire week (21 slots)
-  const generateWeek = async ({ fillEmptyOnly = false } = {}) => {
+  const generateWeek = useCallback(async ({ fillEmptyOnly = false } = {}) => {
     setLoading(true)
     setFeedback('')
     try {
@@ -83,7 +182,6 @@ export default function Planner() {
 
       if (selectedCategories.length > 0) {
         // Generate from selected categories
-        // Distribute categories across slots using round-robin
         const recipesNeeded = slotsToFill.length
         const recipesPerCategory = Math.ceil(recipesNeeded / selectedCategories.length)
         const categoryRecipes = await getMultipleByCategories(selectedCategories, recipesPerCategory)
@@ -109,7 +207,7 @@ export default function Planner() {
         }
       })
 
-      setWeeklySlots(newSlots)
+      updateSlots(newSlots)
       setFeedback(
         `Generated ${recipes.length} recipe${recipes.length !== 1 ? 's' : ''} for ${fillEmptyOnly ? 'empty slots' : 'the week'}.`,
       )
@@ -121,10 +219,10 @@ export default function Planner() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [weeklySlots, selectedCategories, getMultipleByCategories, getMultipleRandom, updateSlots])
 
   // Generate single slot
-  const generateSlot = async (dayIndex, mealType) => {
+  const generateSlot = useCallback(async (dayIndex, mealType) => {
     const loadingKey = `${dayIndex}-${mealType}`
     setSlotLoading(loadingKey)
     try {
@@ -136,7 +234,7 @@ export default function Planner() {
         const categoryRecipes = await getFilteredRecipes(randomCategory)
         if (categoryRecipes.length > 0) {
           const randomFromCategory = categoryRecipes[Math.floor(Math.random() * categoryRecipes.length)]
-          // Fetch full details by ID if we have it, otherwise use random
+          // Fetch full details by ID
           if (randomFromCategory.id) {
             recipe = await getRecipeById(randomFromCategory.id)
           }
@@ -152,30 +250,34 @@ export default function Planner() {
       if (recipe) {
         const newSlots = [...weeklySlots]
         newSlots[dayIndex][mealType] = recipe
-        setWeeklySlots(newSlots)
+        updateSlots(newSlots)
+      } else {
+        setFeedback('Failed to generate recipe for this slot.')
+        setTimeout(() => setFeedback(''), 2000)
       }
     } catch (error) {
       console.error('Error generating slot:', error)
+      setFeedback('Failed to generate recipe. Please try again.')
+      setTimeout(() => setFeedback(''), 2000)
     } finally {
       setSlotLoading(null)
     }
-  }
+  }, [weeklySlots, selectedCategories, getFilteredRecipes, getRecipeById, getRandomRecipe, updateSlots])
 
   // Remove slot
-  const removeSlot = (dayIndex, mealType) => {
+  const removeSlot = useCallback((dayIndex, mealType) => {
     const newSlots = [...weeklySlots]
     newSlots[dayIndex][mealType] = null
-    setWeeklySlots(newSlots)
-  }
+    updateSlots(newSlots)
+  }, [weeklySlots, updateSlots])
 
-  // Add slot (opens menu in PlannerSlot, but we handle it here if needed)
-  const addSlot = (dayIndex, mealType) => {
-    // This is handled by PlannerSlot's menu - generateSlot will be called via onSurprise
+  // Add slot (opens menu in PlannerSlot)
+  const addSlot = useCallback((dayIndex, mealType) => {
     generateSlot(dayIndex, mealType)
-  }
+  }, [generateSlot])
 
-  // Save plan
-  const handleSavePlan = async () => {
+  // Save plan to saved plans list
+  const handleSavePlan = useCallback(async () => {
     const hasAnyRecipes = weeklySlots.some((day) =>
       MEAL_TYPES.some((mealType) => day[mealType] !== null),
     )
@@ -185,39 +287,60 @@ export default function Planner() {
       return
     }
 
-    const planId = weeklyPlan.save({
+    const planToSave = {
+      ...currentPlan,
       slots: weeklySlots,
       categories: selectedCategories,
-    })
-    setSavedPlans(weeklyPlan.get())
-    setFeedback('Plan saved!')
-    setTimeout(() => setFeedback(''), 3000)
-  }
+      weekStart: currentPlan?.weekStart || getWeekStart(),
+    }
 
-  // Load plan
-  const handleLoadPlan = (plan) => {
+    const planId = weeklyPlan.save(planToSave)
+    if (planId) {
+      setCurrentPlan({ ...planToSave, id: planId })
+      
+      // Save to Firestore if uid exists
+      if (uid) {
+        try {
+          await savePlanToFirestore(uid, { ...planToSave, id: planId })
+        } catch (err) {
+          console.warn('Failed to save to Firestore:', err)
+        }
+      }
+
+      setSavedPlans(weeklyPlan.get())
+      setFeedback('Plan saved!')
+      setTimeout(() => setFeedback(''), 3000)
+    }
+  }, [currentPlan, weeklySlots, selectedCategories, uid])
+
+  // Load plan from saved plans
+  const handleLoadPlan = useCallback((plan) => {
     setWeeklySlots(plan.slots)
     setSelectedCategories(plan.categories || [])
+    setCurrentPlan(plan)
+    weeklyPlan.saveCurrent(plan)
     setShowSaved(false)
     setFeedback('Plan loaded!')
     setTimeout(() => setFeedback(''), 2000)
-  }
+  }, [])
 
   // Delete plan
-  const handleDeletePlan = (planId) => {
+  const handleDeletePlan = useCallback((planId) => {
     weeklyPlan.delete(planId)
     setSavedPlans(weeklyPlan.get())
     setFeedback('Plan deleted!')
     setTimeout(() => setFeedback(''), 2000)
-  }
+  }, [])
 
   // View slot recipe
-  const handleViewSlot = (dayIndex, mealType) => {
+  const handleViewSlot = useCallback((dayIndex, mealType) => {
     const recipe = weeklySlots[dayIndex][mealType]
     if (recipe) {
       navigate(`/recipe/${recipe.id}`)
     }
-  }
+  }, [weeklySlots, navigate])
+
+  const weekStart = currentPlan?.weekStart || getWeekStart()
 
   return (
     <section className="pt-10">
@@ -347,20 +470,49 @@ export default function Planner() {
         </div>
       )}
 
-      {/* Week grid - responsive: stack on mobile, 7 columns on wide screens */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-        {DAYS.map((_, dayIndex) => (
-          <PlannerDay
-            key={dayIndex}
-            dayIndex={dayIndex}
-            slots={weeklySlots[dayIndex]}
-            onViewSlot={handleViewSlot}
-            onRemoveSlot={removeSlot}
-            onAddSlot={addSlot}
-            onSurpriseSlot={generateSlot}
-            isSlotLoading={slotLoading}
-          />
-        ))}
+      {/* Table layout: rows = Days, columns = Meals */}
+      <div className="glass overflow-x-auto rounded-xl p-4">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>
+              <th className="text-left p-3 text-sm font-semibold text-slate-900 dark:text-white">Day</th>
+              <th className="text-center p-3 text-sm font-semibold text-slate-900 dark:text-white">Breakfast</th>
+              <th className="text-center p-3 text-sm font-semibold text-slate-900 dark:text-white">Lunch</th>
+              <th className="text-center p-3 text-sm font-semibold text-slate-900 dark:text-white">Dinner</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 7 }).map((_, dayIndex) => {
+              const dayDate = getDateForDay(weekStart, dayIndex)
+              const daySlots = weeklySlots[dayIndex] || { breakfast: null, lunch: null, dinner: null }
+              return (
+                <tr key={dayIndex} className="border-t border-slate-200 dark:border-white/10">
+                  <td className="p-3">
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-white">Day {dayIndex + 1}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        {dayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                  </td>
+                  {MEAL_TYPES.map((mealType) => (
+                    <td key={mealType} className="p-3">
+                      <PlannerSlot
+                        mealType={mealType}
+                        recipe={daySlots[mealType]}
+                        onView={() => handleViewSlot(dayIndex, mealType)}
+                        onRemove={() => removeSlot(dayIndex, mealType)}
+                        onAdd={() => addSlot(dayIndex, mealType)}
+                        onSurprise={() => generateSlot(dayIndex, mealType)}
+                        isLoading={slotLoading === `${dayIndex}-${mealType}`}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </section>
   )

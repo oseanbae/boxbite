@@ -46,7 +46,7 @@ export default function RecentList() {
             </h2>
           </div>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-4">
+        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
           {Array.from({ length: 6 }).map((_, idx) => (
             <div key={idx} className="min-w-[140px] flex-shrink-0">
               <SkeletonCard size="compact" />
@@ -96,4 +96,3 @@ export default function RecentList() {
     </section>
   )
 }
-

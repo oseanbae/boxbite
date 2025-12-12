@@ -2,7 +2,7 @@ export function SkeletonCard({ size = 'normal' }) {
   const isCompact = size === 'compact'
   return (
     <div className={`glass card-hover flex flex-col overflow-hidden rounded-xl ${isCompact ? 'p-2' : 'p-3'}`}>
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-slate-300 animate-pulse dark:bg-slate-800" />
+      <div className={`relative w-full overflow-hidden rounded-lg bg-slate-300 animate-pulse dark:bg-slate-800 ${isCompact ? 'h-24' : 'aspect-square'}`} />
       <div className={`${isCompact ? 'mt-2' : 'mt-4'} space-y-2`}>
         <div className={`w-3/4 rounded bg-slate-300 animate-pulse dark:bg-slate-800 ${isCompact ? 'h-3' : 'h-4'}`} />
         <div className={`w-1/2 rounded bg-slate-300 animate-pulse dark:bg-slate-800 ${isCompact ? 'h-2' : 'h-3'}`} />
@@ -19,7 +19,7 @@ export default function RecipeCard({ recipe, onSelect, actionSlot, size = 'norma
       className={`glass card-hover flex cursor-pointer flex-col overflow-hidden rounded-xl ${isCompact ? 'p-2' : 'p-3'}`}
       onClick={onSelect}
     >
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg">
+      <div className={`relative w-full overflow-hidden rounded-lg ${isCompact ? 'h-24' : 'aspect-square'}`}>
         <img
           src={recipe.image}
           alt={recipe.name}
@@ -53,5 +53,3 @@ export default function RecipeCard({ recipe, onSelect, actionSlot, size = 'norma
     </article>
   )
 }
-
-

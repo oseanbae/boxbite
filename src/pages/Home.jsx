@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FilterBar from '../components/FilterBar'
 import RecipeCard, { SkeletonCard } from '../components/RecipeCard'
@@ -6,26 +6,35 @@ import RecentList from '../components/RecentList'
 import useMealDB from '../hooks/useMealDB'
 
 export default function Home() {
-  const { getRandomRecipe, getCategories, getFilteredRecipes, getMultipleRandom, getMultipleByCategories } = useMealDB()
+  const { getMultipleRandom, getCategories, getMultipleByCategories } = useMealDB()
   const navigate = useNavigate()
   const [recipes, setRecipes] = useState([])
   const [categories, setCategories] = useState([])
   const [selectedCategories, setSelectedCategories] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  
+  // Track if initial load has happened
+  const initialLoadRef = useRef(false)
+  // Debounce timer for category changes
+  const categoryDebounceRef = useRef(null)
 
+  // Load categories on mount (one-time)
   useEffect(() => {
     const bootstrap = async () => {
+      if (initialLoadRef.current) return
+      initialLoadRef.current = true
+      
       const catList = await getCategories()
       setCategories(catList)
-      // Load random grid on initial load
+      // Load random grid on initial load only
       await loadRandomGrid()
     }
     bootstrap()
-  }, [])
+  }, [getCategories])
 
-  // Load random grid (6 recipes)
-  const loadRandomGrid = async () => {
+  // Load random grid (6 recipes) - only called explicitly
+  const loadRandomGrid = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -38,10 +47,10 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [getMultipleRandom])
 
   // Show recipes for selected categories (1 per category)
-  const showSelected = async () => {
+  const showSelected = useCallback(async () => {
     if (selectedCategories.length === 0) {
       await loadRandomGrid()
       return
@@ -61,10 +70,10 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCategories, getMultipleByCategories, loadRandomGrid])
 
   // Surprise Me - respects selected categories or shows random
-  const surpriseSelected = async () => {
+  const surpriseSelected = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -83,36 +92,46 @@ export default function Home() {
         const randomRecipes = await getMultipleRandom(6)
         setRecipes(randomRecipes)
       }
-      if (!recipes.length) setError('Could not fetch recipes. Try again.')
     } catch (err) {
       console.error('Error fetching surprise recipes:', err)
       setError('Failed to load recipes. Please try again.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCategories, getMultipleByCategories, getMultipleRandom])
 
   // Toggle category selection
   const handleCategoryToggle = (category) => {
     setSelectedCategories((prev) => {
-      if (prev.includes(category)) {
-        return prev.filter((c) => c !== category)
-      } else {
-        return [...prev, category]
-      }
+      const newCategories = prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
+      return newCategories
     })
   }
 
-  // Update recipes when categories change
+  // Debounced effect: Update recipes when categories change (with 200ms debounce)
   useEffect(() => {
-    if (selectedCategories.length > 0) {
-      showSelected()
-    } else {
-      loadRandomGrid()
+    // Clear existing timer
+    if (categoryDebounceRef.current) {
+      clearTimeout(categoryDebounceRef.current)
     }
-  }, [selectedCategories])
 
-  const visibleRecipes = useMemo(() => recipes || [], [recipes])
+    // Don't run on initial mount (initial load handles it)
+    if (!initialLoadRef.current) return
+
+    // Set new timer
+    categoryDebounceRef.current = setTimeout(() => {
+      showSelected()
+    }, 200)
+
+    // Cleanup
+    return () => {
+      if (categoryDebounceRef.current) {
+        clearTimeout(categoryDebounceRef.current)
+      }
+    }
+  }, [selectedCategories, showSelected])
 
   return (
     <>
@@ -148,7 +167,7 @@ export default function Home() {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {loading
             ? Array.from({ length: 6 }).map((_, idx) => <SkeletonCard key={idx} />)
-            : visibleRecipes.map((recipe) => (
+            : recipes.map((recipe) => (
                 <RecipeCard
                   key={recipe.id}
                   recipe={recipe}
