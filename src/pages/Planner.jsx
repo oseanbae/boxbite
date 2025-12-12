@@ -75,6 +75,8 @@ export default function Planner() {
   const [savedPlans, setSavedPlans] = useState([])
   const [showSaved, setShowSaved] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [planName, setPlanName] = useState('')
 
   // Load current plan from localStorage/Firestore on mount
   useEffect(() => {
@@ -334,21 +336,13 @@ export default function Planner() {
   }, [generateSlot])
 
   // Save plan to saved plans list
-  const handleSavePlan = useCallback(async () => {
-    const hasAnyRecipes = weeklySlots.some((day) =>
-      MEAL_TYPES.some((mealType) => day[mealType] !== null),
-    )
-    if (!hasAnyRecipes) {
-      setFeedback('No recipes to save. Generate a plan first.')
-      setTimeout(() => setFeedback(''), 3000)
-      return
-    }
-
+  const handleSavePlan = useCallback(async (name) => {
     const planToSave = {
       ...currentPlan,
       slots: weeklySlots,
       categories: selectedCategories,
       weekStart: currentPlan?.weekStart || getWeekStart(),
+      name: name || `Plan ${new Date().toLocaleDateString()}`,
     }
 
     const planId = weeklyPlan.save(planToSave)
@@ -373,10 +367,31 @@ export default function Planner() {
         setSavedPlans(weeklyPlan.get())
       }
 
+      setShowSaveDialog(false)
+      setPlanName('')
       setFeedback('Plan saved!')
       setTimeout(() => setFeedback(''), 3000)
     }
   }, [currentPlan, weeklySlots, selectedCategories, user])
+
+  const handleSavePlanClick = useCallback(() => {
+    const hasAnyRecipes = weeklySlots.some((day) =>
+      MEAL_TYPES.some((mealType) => day[mealType] !== null),
+    )
+    if (!hasAnyRecipes) {
+      setFeedback('No recipes to save. Generate a plan first.')
+      setTimeout(() => setFeedback(''), 3000)
+      return
+    }
+
+    // If plan already has a name, save directly; otherwise show dialog
+    if (currentPlan?.name) {
+      handleSavePlan(currentPlan.name)
+    } else {
+      setPlanName(`Week of ${new Date(currentPlan?.weekStart || getWeekStart()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`)
+      setShowSaveDialog(true)
+    }
+  }, [currentPlan, weeklySlots, handleSavePlan])
 
   // Load plan from saved plans
   const handleLoadPlan = useCallback((plan) => {
@@ -497,7 +512,7 @@ export default function Planner() {
           Fill Empty
         </button>
         <button
-          onClick={handleSavePlan}
+          onClick={handleSavePlanClick}
           className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
         >
           💾 Save Plan
@@ -516,47 +531,121 @@ export default function Planner() {
         </div>
       )}
 
-      {showSaved && savedPlans.length > 0 && (
-        <div className="glass mb-6 rounded-xl p-4">
-          <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Saved Plans</h3>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {savedPlans.map((plan) => {
-              const recipeCount = plan.slots?.reduce(
-                (count, day) =>
-                  count +
-                  MEAL_TYPES.filter((mealType) => day[mealType] !== null).length,
-                0,
-              ) || 0
-              return (
-                <div
-                  key={plan.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">
-                      {plan.name || new Date(plan.createdAt).toLocaleDateString()}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {recipeCount} recipes
-                    </p>
+      {showSaved && (
+        <div className="glass mb-6 rounded-xl p-4 animate-fadeIn">
+          <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
+            Saved Plans ({savedPlans.length})
+          </h3>
+          {savedPlans.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {savedPlans.map((plan, index) => {
+                const recipeCount = plan.slots?.reduce(
+                  (count, day) =>
+                    count +
+                    MEAL_TYPES.filter((mealType) => day[mealType] !== null).length,
+                  0,
+                ) || 0
+                const weekStartDate = plan.weekStart ? new Date(plan.weekStart) : new Date(plan.createdAt)
+                const isCurrentPlan = currentPlan?.id === plan.id
+                return (
+                  <div
+                    key={plan.id}
+                    className={`group relative flex flex-col rounded-lg border p-4 transition-all duration-200 ${
+                      isCurrentPlan
+                        ? 'border-fuchsia-500 bg-fuchsia-50/50 dark:border-fuchsia-400 dark:bg-fuchsia-950/30'
+                        : 'border-slate-200 bg-white hover:border-fuchsia-300 hover:shadow-md dark:border-white/10 dark:bg-slate-900 dark:hover:border-fuchsia-500/50'
+                    }`}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="mb-3 flex-1">
+                      <div className="mb-1 flex items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                          {plan.name || `Week of ${weekStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                        </p>
+                        {isCurrentPlan && (
+                          <span className="rounded-full bg-fuchsia-500 px-2 py-0.5 text-xs font-semibold text-white">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {recipeCount} recipes • {weekStartDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleLoadPlan(plan)}
+                        className="flex-1 rounded-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow shadow-fuchsia-900/40 transition-all duration-200 hover:brightness-110 active:scale-95"
+                      >
+                        Load
+                      </button>
+                      <button
+                        onClick={() => handleDeletePlan(plan.id)}
+                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 active:scale-95 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleLoadPlan(plan)}
-                      className="rounded-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 px-3 py-1.5 text-xs font-semibold text-slate-900 transition hover:brightness-110"
-                    >
-                      Load
-                    </button>
-                    <button
-                      onClick={() => handleDeletePlan(plan.id)}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:border-white/10 dark:bg-slate-900/50">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                No saved plans yet. Create and save a plan to get started!
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Save Plan Dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fadeIn">
+          <div className="glass w-full max-w-md rounded-xl p-6 shadow-xl animate-slideUp">
+            <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
+              Save Weekly Plan
+            </h3>
+            <div className="mb-4">
+              <label htmlFor="planName" className="mb-2 block text-sm font-medium text-slate-900 dark:text-white">
+                Plan Name
+              </label>
+              <input
+                id="planName"
+                type="text"
+                value={planName}
+                onChange={(e) => setPlanName(e.target.value)}
+                placeholder="Enter plan name..."
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 transition focus:border-fuchsia-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSavePlan(planName)
+                  } else if (e.key === 'Escape') {
+                    setShowSaveDialog(false)
+                    setPlanName('')
+                  }
+                }}
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleSavePlan(planName)}
+                className="flex-1 rounded-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-fuchsia-900/40 transition-all duration-200 hover:brightness-110 active:scale-95"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setShowSaveDialog(false)
+                  setPlanName('')
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 active:scale-95 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

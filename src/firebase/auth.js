@@ -1,5 +1,5 @@
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut as firebaseSignOut, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth'
-import { app } from './config'
+import app from './config'
 
 export const auth = getAuth(app)
 export const googleProvider = new GoogleAuthProvider()

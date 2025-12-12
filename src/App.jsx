@@ -10,6 +10,7 @@ import Pantry from './pages/Pantry'
 import Planner from './pages/Planner'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
+import About from './pages/About'
 
 function App() {
   useEffect(() => {
@@ -35,6 +36,7 @@ function App() {
             <Route path="/pantry" element={<Pantry />} />
             <Route path="/planner" element={<Planner />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
           </Routes>
