@@ -17,27 +17,40 @@ export default function Home() {
   
   // Track if initial load has happened
   const initialLoadRef = useRef(false)
+  // Track last fetch to prevent duplicate fetches
+  const lastFetchRef = useRef({ type: null, categories: null })
   // Debounce timer for category changes
   const categoryDebounceRef = useRef(null)
+  // Track categories as string for stable comparison
+  const categoriesKeyRef = useRef('')
 
-  // Load categories on mount (one-time)
+  // Load categories on mount (one-time, stable dependencies)
   useEffect(() => {
     const bootstrap = async () => {
       if (initialLoadRef.current) return
-      initialLoadRef.current = true
       
       const catList = await getCategories()
       setCategories(catList)
+      initialLoadRef.current = true
+      
       // Load random grid on initial load only
       await loadRandomGrid()
     }
     bootstrap()
-  }, [getCategories])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty deps - only run once
 
-  // Load random grid (6 recipes) - only called explicitly
+  // Stable loadRandomGrid function
   const loadRandomGrid = useCallback(async () => {
+    // Prevent duplicate random fetches
+    if (lastFetchRef.current.type === 'random' && recipes.length > 0) {
+      return
+    }
+
     setLoading(true)
     setError('')
+    lastFetchRef.current = { type: 'random', categories: null }
+    
     try {
       const randomRecipes = await getMultipleRandom(6)
       setRecipes(randomRecipes)
@@ -48,10 +61,17 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }, [getMultipleRandom])
+  }, [getMultipleRandom, recipes.length])
 
-  // Show recipes for selected categories (1 per category)
+  // Stable showSelected function - only depends on selectedCategories string key
   const showSelected = useCallback(async () => {
+    const categoriesKey = selectedCategories.sort().join(',')
+    
+    // Prevent duplicate fetches for same categories
+    if (lastFetchRef.current.type === 'categories' && lastFetchRef.current.categories === categoriesKey) {
+      return
+    }
+
     if (selectedCategories.length === 0) {
       await loadRandomGrid()
       return
@@ -59,6 +79,8 @@ export default function Home() {
 
     setLoading(true)
     setError('')
+    lastFetchRef.current = { type: 'categories', categories: categoriesKey }
+    
     try {
       const categoryRecipes = await getMultipleByCategories(selectedCategories, 1)
       setRecipes(categoryRecipes)
@@ -73,12 +95,16 @@ export default function Home() {
     }
   }, [selectedCategories, getMultipleByCategories, loadRandomGrid])
 
-  // Surprise Me - respects selected categories or shows random
+  // Stable surpriseSelected function
   const surpriseSelected = useCallback(async () => {
     setLoading(true)
     setError('')
+    
     try {
       if (selectedCategories.length > 0) {
+        const categoriesKey = selectedCategories.sort().join(',')
+        lastFetchRef.current = { type: 'surprise-categories', categories: categoriesKey }
+        
         // Fetch new random recipes from selected categories
         const categoryRecipes = await getMultipleByCategories(selectedCategories, 1)
         if (categoryRecipes.length > 0) {
@@ -87,8 +113,11 @@ export default function Home() {
           // Fallback to random if categories yield no results
           const randomRecipes = await getMultipleRandom(selectedCategories.length || 6)
           setRecipes(randomRecipes)
+          lastFetchRef.current = { type: 'surprise-random', categories: null }
         }
       } else {
+        lastFetchRef.current = { type: 'surprise-random', categories: null }
+        
         // No categories selected - show random grid
         const randomRecipes = await getMultipleRandom(6)
         setRecipes(randomRecipes)
@@ -102,24 +131,39 @@ export default function Home() {
   }, [selectedCategories, getMultipleByCategories, getMultipleRandom])
 
   // Toggle category selection
-  const handleCategoryToggle = (category) => {
+  const handleCategoryToggle = useCallback((category) => {
     setSelectedCategories((prev) => {
       const newCategories = prev.includes(category)
         ? prev.filter((c) => c !== category)
         : [...prev, category]
       return newCategories
     })
-  }
+  }, [])
+
+  // Track categories as string for stable comparison
+  const currentCategoriesKey = selectedCategories.sort().join(',')
 
   // Debounced effect: Update recipes when categories change (with 200ms debounce)
+  // Only trigger if categories actually changed (string comparison)
   useEffect(() => {
+    // Don't run on initial mount (initial load handles it)
+    if (!initialLoadRef.current) {
+      categoriesKeyRef.current = currentCategoriesKey
+      return
+    }
+
+    // Only trigger if categories actually changed
+    if (categoriesKeyRef.current === currentCategoriesKey) {
+      return
+    }
+
     // Clear existing timer
     if (categoryDebounceRef.current) {
       clearTimeout(categoryDebounceRef.current)
     }
 
-    // Don't run on initial mount (initial load handles it)
-    if (!initialLoadRef.current) return
+    // Update ref immediately to prevent duplicate triggers
+    categoriesKeyRef.current = currentCategoriesKey
 
     // Set new timer
     categoryDebounceRef.current = setTimeout(() => {
@@ -132,7 +176,7 @@ export default function Home() {
         clearTimeout(categoryDebounceRef.current)
       }
     }
-  }, [selectedCategories, showSelected])
+  }, [currentCategoriesKey, showSelected])
 
   return (
     <PageFadeIn>
@@ -144,7 +188,7 @@ export default function Home() {
               Tonight&apos;s pick
             </p>
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">
-              Spin the wheel and cook something new
+              Click Surprise Me to explore a new dish
             </h2>
             <p className="max-w-2xl text-slate-600 dark:text-slate-300">
               Select categories to filter recipes, or hit Surprise Me to let BoxBite pick

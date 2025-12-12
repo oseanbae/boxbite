@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 /**
  * PlannerSlot - Represents a single meal slot (breakfast/lunch/dinner)
- * Compact component designed to fit in table cells
+ * Compact component designed to fit in table cells with consistent sizing
  */
 export default function PlannerSlot({
   mealType,
@@ -18,11 +18,12 @@ export default function PlannerSlot({
   if (recipe) {
     return (
       <div className="glass rounded-lg border border-slate-200 dark:border-white/10 p-2 shadow-sm hover:shadow-md transition-all duration-200 ease-out animate-fadeIn">
+        {/* Fixed height image container for consistency */}
         <div className="relative h-20 w-full overflow-hidden rounded-lg mb-2">
           <img
             src={recipe.image}
             alt={recipe.name}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover object-center"
             loading="lazy"
           />
         </div>
