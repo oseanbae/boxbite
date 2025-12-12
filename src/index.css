@@ -15,9 +15,22 @@
 body {
   margin: 0;
   min-height: 100vh;
+  transition: background-color 0.2s ease;
   background: radial-gradient(circle at 20% 20%, #1f2937 0, transparent 25%),
     radial-gradient(circle at 80% 0, #111827 0, transparent 30%),
     linear-gradient(180deg, #0f172a 0%, #0b1223 100%);
+}
+
+.dark body {
+  background: radial-gradient(circle at 20% 20%, #1f2937 0, transparent 25%),
+    radial-gradient(circle at 80% 0, #111827 0, transparent 30%),
+    linear-gradient(180deg, #0f172a 0%, #0b1223 100%);
+}
+
+body:not(.dark) {
+  background: radial-gradient(circle at 20% 20%, #f9fafb 0, transparent 25%),
+    radial-gradient(circle at 80% 0, #ffffff 0, transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #f3f4f6 100%);
 }
 
 #root {
@@ -32,4 +45,25 @@ body {
   backdrop-filter: blur(12px);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(15, 23, 42, 0.8));
   border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.dark .glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(15, 23, 42, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass:not(.dark *) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.9));
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Scrollbar styling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

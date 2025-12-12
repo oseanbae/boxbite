@@ -7,6 +7,7 @@ import {
   removeFavorite,
   saveFavorite,
 } from '../firebase/config'
+import { recent } from '../utils/recent'
 
 export default function RecipeDetail() {
   const { id } = useParams()
@@ -23,6 +24,9 @@ export default function RecipeDetail() {
       const data = await getRecipeById(id)
       setRecipe(data)
       setLoading(false)
+      if (data?.id) {
+        recent.add(data.id)
+      }
     }
     load()
   }, [id, getRecipeById])
@@ -167,4 +171,5 @@ export default function RecipeDetail() {
     </section>
   )
 }
+
 
