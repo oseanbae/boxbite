@@ -31,7 +31,7 @@ export default function IngredientInput({ onAdd, ingredients = [] }) {
           <button
             type="submit"
             disabled={!input.trim()}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 px-6 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-fuchsia-900/40 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 px-6 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-fuchsia-900/40 transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Add
           </button>
@@ -43,12 +43,12 @@ export default function IngredientInput({ onAdd, ingredients = [] }) {
           {ingredients.map((ingredient) => (
             <span
               key={ingredient}
-              className="group inline-flex items-center gap-2 rounded-full bg-fuchsia-500/15 px-4 py-2 text-sm font-medium text-fuchsia-700 transition hover:bg-fuchsia-500/25 dark:text-fuchsia-200"
+              className="group inline-flex items-center gap-2 rounded-full bg-fuchsia-500/15 px-4 py-2 text-sm font-medium text-fuchsia-700 transition-all duration-200 ease-out hover:bg-fuchsia-500/25 dark:text-fuchsia-200"
             >
               {ingredient}
               <button
                 onClick={() => handleRemove(ingredient)}
-                className="ml-1 rounded-full p-0.5 transition hover:bg-fuchsia-500/30"
+                className="ml-1 rounded-full p-0.5 transition-all duration-200 ease-out hover:bg-fuchsia-500/30 active:scale-90"
                 aria-label={`Remove ${ingredient}`}
               >
                 ×
@@ -62,7 +62,7 @@ export default function IngredientInput({ onAdd, ingredients = [] }) {
         <div className="mt-4 flex gap-2">
           <button
             onClick={() => onAdd([])}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:bg-slate-50 active:scale-[0.97] dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Clear All
           </button>

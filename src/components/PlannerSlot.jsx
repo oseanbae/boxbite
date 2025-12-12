@@ -17,7 +17,7 @@ export default function PlannerSlot({
 
   if (recipe) {
     return (
-      <div className="glass rounded-lg border border-slate-200 dark:border-white/10 p-2">
+      <div className="glass rounded-lg border border-slate-200 dark:border-white/10 p-2 shadow-sm hover:shadow-md transition-all duration-200 ease-out animate-fadeIn">
         <div className="relative h-20 w-full overflow-hidden rounded-lg mb-2">
           <img
             src={recipe.image}
@@ -32,13 +32,13 @@ export default function PlannerSlot({
         <div className="flex gap-1">
           <button
             onClick={onView}
-            className="flex-1 rounded bg-gradient-to-r from-fuchsia-500 to-amber-400 px-2 py-1 text-xs font-semibold text-slate-900 shadow shadow-fuchsia-900/40 transition hover:brightness-110"
+            className="flex-1 rounded bg-gradient-to-r from-fuchsia-500 to-amber-400 px-2 py-1 text-xs font-semibold text-slate-900 shadow shadow-fuchsia-900/40 transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.97]"
           >
             View
           </button>
           <button
             onClick={onRemove}
-            className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:bg-slate-50 active:scale-[0.97] dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             ×
           </button>
@@ -57,7 +57,7 @@ export default function PlannerSlot({
               if (onSurprise) onSurprise()
             }}
             disabled={isLoading}
-            className="w-full rounded bg-gradient-to-r from-fuchsia-500 to-amber-400 px-2 py-1.5 text-xs font-semibold text-slate-900 shadow shadow-fuchsia-900/40 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded bg-gradient-to-r from-fuchsia-500 to-amber-400 px-2 py-1.5 text-xs font-semibold text-slate-900 shadow shadow-fuchsia-900/40 transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading ? '...' : '🎲 Surprise'}
           </button>
@@ -66,13 +66,13 @@ export default function PlannerSlot({
               setShowAddMenu(false)
               if (onAdd) onAdd()
             }}
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:bg-slate-50 active:scale-[0.97] dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             Choose...
           </button>
           <button
             onClick={() => setShowAddMenu(false)}
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+            className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-500 transition-all duration-200 ease-out hover:bg-slate-50 active:scale-[0.97] dark:border-white/10 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
           >
             Cancel
           </button>
@@ -80,7 +80,7 @@ export default function PlannerSlot({
       ) : (
         <button
           onClick={() => setShowAddMenu(true)}
-          className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+          className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-500 transition-all duration-200 ease-out hover:bg-slate-50 active:scale-[0.97] dark:border-white/10 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
         >
           + Add
         </button>

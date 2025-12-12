@@ -20,7 +20,7 @@ export default function SearchBar({ value, onChange, onSubmit, isLoading = false
         <button
           type="submit"
           disabled={isLoading || !value.trim()}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 px-6 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-fuchsia-900/40 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 px-6 py-2.5 text-sm font-semibold text-slate-900 shadow-lg shadow-fuchsia-900/40 transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? (
             <>

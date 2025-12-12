@@ -2,8 +2,9 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FilterBar from '../components/FilterBar'
 import RecipeCard, { SkeletonCard } from '../components/RecipeCard'
-import RecentList from '../components/RecentList'
+import RecentlyViewedSlider from '../components/RecentlyViewedSlider'
 import useMealDB from '../hooks/useMealDB'
+import PageFadeIn from '../components/PageFadeIn'
 
 export default function Home() {
   const { getMultipleRandom, getCategories, getMultipleByCategories } = useMealDB()
@@ -134,48 +135,51 @@ export default function Home() {
   }, [selectedCategories, showSelected])
 
   return (
-    <>
-      <RecentList />
-      <section className="pt-8">
-        <div className="mb-8 flex flex-col gap-3">
-          <p className="text-sm uppercase tracking-[0.25em] text-fuchsia-600 dark:text-fuchsia-300">
-            Tonight&apos;s pick
-          </p>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">
-            Spin the wheel and cook something new
-          </h2>
-          <p className="max-w-2xl text-slate-600 dark:text-slate-300">
-            Select categories to filter recipes, or hit Surprise Me to let BoxBite pick
-            random dishes for you. Click any card to view the full recipe.
-          </p>
-        </div>
-
-        <FilterBar
-          categories={categories}
-          selectedCategories={selectedCategories}
-          onCategoryToggle={handleCategoryToggle}
-          onSurprise={surpriseSelected}
-          isLoading={loading}
-        />
-
-        {error ? (
-          <div className="mb-6 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100">
-            {error}
+    <PageFadeIn>
+      <>
+        <RecentlyViewedSlider />
+        <section className="pt-8">
+          <div className="mb-8 flex flex-col gap-3">
+            <p className="text-sm uppercase tracking-[0.25em] text-fuchsia-600 dark:text-fuchsia-300">
+              Tonight&apos;s pick
+            </p>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">
+              Spin the wheel and cook something new
+            </h2>
+            <p className="max-w-2xl text-slate-600 dark:text-slate-300">
+              Select categories to filter recipes, or hit Surprise Me to let BoxBite pick
+              random dishes for you. Click any card to view the full recipe.
+            </p>
           </div>
-        ) : null}
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {loading
-            ? Array.from({ length: 6 }).map((_, idx) => <SkeletonCard key={idx} />)
-            : recipes.map((recipe) => (
-                <RecipeCard
-                  key={recipe.id}
-                  recipe={recipe}
-                  onSelect={() => navigate(`/recipe/${recipe.id}`)}
-                />
-              ))}
-        </div>
-      </section>
-    </>
+          <FilterBar
+            categories={categories}
+            selectedCategories={selectedCategories}
+            onCategoryToggle={handleCategoryToggle}
+            onSurprise={surpriseSelected}
+            isLoading={loading}
+          />
+
+          {error ? (
+            <div className="mb-6 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-100 animate-fadeIn">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {loading
+              ? Array.from({ length: 6 }).map((_, idx) => <SkeletonCard key={idx} />)
+              : recipes.map((recipe, index) => (
+                  <div key={recipe.id} style={{ animationDelay: `${index * 50}ms` }}>
+                    <RecipeCard
+                      recipe={recipe}
+                      onSelect={() => navigate(`/recipe/${recipe.id}`)}
+                    />
+                  </div>
+                ))}
+          </div>
+        </section>
+      </>
+    </PageFadeIn>
   )
 }

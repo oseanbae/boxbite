@@ -6,7 +6,7 @@ export default function FilterBar({
   isLoading,
 }) {
   return (
-    <div className="glass mb-6 flex flex-col gap-4 rounded-xl p-4">
+    <div className="glass mb-6 flex flex-col gap-4 rounded-xl p-4 shadow-sm">
       <div>
         <p className="text-xs uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
           Filters
@@ -25,7 +25,7 @@ export default function FilterBar({
               key={cat}
               onClick={() => onCategoryToggle(cat)}
               disabled={isLoading}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 ease-out active:scale-[0.97] ${
                 isSelected
                   ? 'bg-gradient-to-r from-fuchsia-500 to-amber-400 text-slate-900 shadow-lg shadow-fuchsia-900/40'
                   : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
@@ -42,7 +42,7 @@ export default function FilterBar({
         <button
           onClick={onSurprise}
           disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 px-6 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-fuchsia-900/40 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 px-6 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-fuchsia-900/40 transition-all duration-200 ease-out hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? (
             <>

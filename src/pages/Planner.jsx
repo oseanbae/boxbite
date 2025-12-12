@@ -4,6 +4,7 @@ import PlannerSlot from '../components/PlannerSlot'
 import useMealDB from '../hooks/useMealDB'
 import { weeklyPlan } from '../utils/weeklyPlan'
 import { savePlanToFirestore, loadPlanFromFirestore } from '../firebase/config'
+import PageFadeIn from '../components/PageFadeIn'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner']
 
@@ -343,7 +344,8 @@ export default function Planner() {
   const weekStart = currentPlan?.weekStart || getWeekStart()
 
   return (
-    <section className="pt-10">
+    <PageFadeIn>
+      <section className="pt-10">
       <div className="mb-8 flex flex-col gap-3">
         <p className="text-sm uppercase tracking-[0.25em] text-fuchsia-600 dark:text-fuchsia-300">
           Weekly Planner
@@ -515,5 +517,6 @@ export default function Planner() {
         </table>
       </div>
     </section>
+    </PageFadeIn>
   )
 }

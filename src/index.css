@@ -38,7 +38,7 @@ body:not(.dark) {
 }
 
 .card-hover {
-  @apply transition duration-200 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-fuchsia-900/40;
+  @apply transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-fuchsia-900/40;
 }
 
 .glass {
@@ -66,4 +66,11 @@ body:not(.dark) {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Smooth scrolling */
+@supports (scroll-behavior: smooth) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
