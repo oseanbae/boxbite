@@ -1,37 +1,73 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import RecipeCard from '../components/RecipeCard'
+import { useAuth } from '../contexts/AuthContext'
 import {
-  getFavorites,
-  removeFavorite,
-  saveFavorite,
-} from '../firebase/config'
+  getFavoritesFromFirestore,
+  removeFavoriteFromFirestore,
+  saveFavoriteToFirestore,
+} from '../firebase/firestoreHelpers'
+
+// LocalStorage fallback functions
+const storageKey = 'boxbite_favorites'
+
+const localFavorites = {
+  get: () => {
+    const data = localStorage.getItem(storageKey)
+    return data ? JSON.parse(data) : []
+  },
+  add: (recipe) => {
+    const existing = localFavorites.get()
+    if (existing.some((item) => item.id === recipe.id)) return
+    const updated = [...existing, recipe]
+    localStorage.setItem(storageKey, JSON.stringify(updated))
+  },
+  remove: (id) => {
+    const filtered = localFavorites.get().filter((item) => item.id !== id)
+    localStorage.setItem(storageKey, JSON.stringify(filtered))
+  },
+}
 
 export default function Favorites() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [favorites, setFavorites] = useState([])
   const [loading, setLoading] = useState(true)
   const [feedback, setFeedback] = useState('')
-  const uid = null
 
   useEffect(() => {
     const load = async () => {
-      const data = await getFavorites(uid)
-      setFavorites(data)
+      if (user?.uid) {
+        // Load from Firestore
+        const data = await getFavoritesFromFirestore(user.uid)
+        setFavorites(data)
+      } else {
+        // Load from localStorage
+        const data = localFavorites.get()
+        setFavorites(data)
+      }
       setLoading(false)
     }
     load()
-  }, [uid])
+  }, [user])
 
   const handleRemove = async (id) => {
-    await removeFavorite(uid, id)
+    if (user?.uid) {
+      await removeFavoriteFromFirestore(user.uid, id)
+    } else {
+      localFavorites.remove(id)
+    }
     setFavorites((prev) => prev.filter((item) => item.id !== id))
     setFeedback('Removed from favorites')
     setTimeout(() => setFeedback(''), 2000)
   }
 
   const handleSave = async (recipe) => {
-    await saveFavorite(uid, recipe)
+    if (user?.uid) {
+      await saveFavoriteToFirestore(user.uid, recipe)
+    } else {
+      localFavorites.add(recipe)
+    }
     setFeedback('Saved to favorites')
     setTimeout(() => setFeedback(''), 2000)
   }

@@ -1,9 +1,23 @@
+/*
+ * TEST CHECKLIST:
+ * 1. Start app unauthenticated — favorites & planner operate via localStorage.
+ * 2. Sign up / Sign in — migration runs once; verify Firestore contains data.
+ * 3. Sign in on another machine or incognito — verify data syncs from Firestore.
+ * 4. Update favorite on device A — verify change visible on device B after reload.
+ * 5. Delete a plan in Firestore, verify it's removed on other devices.
+ */
+
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PlannerSlot from '../components/PlannerSlot'
 import useMealDB from '../hooks/useMealDB'
 import { weeklyPlan } from '../utils/weeklyPlan'
-import { savePlanToFirestore, loadPlanFromFirestore } from '../firebase/config'
+import { useAuth } from '../contexts/AuthContext'
+import {
+  savePlanToFirestore,
+  getPlansFromFirestore,
+  deletePlanFromFirestore,
+} from '../firebase/firestoreHelpers'
 import PageFadeIn from '../components/PageFadeIn'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner']
@@ -48,6 +62,7 @@ function getDateForDay(weekStart, dayIndex) {
 
 export default function Planner() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { getMultipleRandom, getCategories, getFilteredRecipes, getMultipleByCategories, getRandomRecipe, getRecipeById } = useMealDB()
   
   // Current working plan state
@@ -60,35 +75,73 @@ export default function Planner() {
   const [savedPlans, setSavedPlans] = useState([])
   const [showSaved, setShowSaved] = useState(false)
   const [feedback, setFeedback] = useState('')
-  const uid = null // TODO: Replace with actual auth uid when available
 
-  // Load current plan from localStorage on mount
+  // Load current plan from localStorage/Firestore on mount
   useEffect(() => {
     const loadCurrentPlan = async () => {
       try {
-        // Try to load current working plan
-        const saved = weeklyPlan.getCurrent()
-        if (saved && saved.slots) {
-          setCurrentPlan(saved)
-          setWeeklySlots(saved.slots)
-          setSelectedCategories(saved.categories || [])
-        } else {
-          // Initialize new plan
-          const weekStart = getWeekStart()
-          const newPlan = {
-            id: null,
-            createdAt: new Date().toISOString(),
-            weekStart,
-            categories: [],
-            slots: createEmptySlots(),
+        if (user?.uid) {
+          // Load from Firestore if authenticated
+          const firestorePlans = await getPlansFromFirestore(user.uid)
+          setSavedPlans(firestorePlans)
+          
+          // Try to load current working plan from localStorage first (user might be working on it)
+          const saved = weeklyPlan.getCurrent()
+          if (saved && saved.slots) {
+            setCurrentPlan(saved)
+            setWeeklySlots(saved.slots)
+            setSelectedCategories(saved.categories || [])
+            // Sync current plan to Firestore
+            if (saved.id) {
+              await savePlanToFirestore(user.uid, saved)
+            }
+          } else if (firestorePlans.length > 0) {
+            // Load the most recent plan from Firestore as current
+            const mostRecent = firestorePlans.sort((a, b) => 
+              new Date(b.createdAt) - new Date(a.createdAt)
+            )[0]
+            setCurrentPlan(mostRecent)
+            setWeeklySlots(mostRecent.slots || createEmptySlots())
+            setSelectedCategories(mostRecent.categories || [])
+            weeklyPlan.saveCurrent(mostRecent)
+          } else {
+            // Initialize new plan
+            const weekStart = getWeekStart()
+            const newPlan = {
+              id: null,
+              createdAt: new Date().toISOString(),
+              weekStart,
+              categories: [],
+              slots: createEmptySlots(),
+            }
+            setCurrentPlan(newPlan)
+            weeklyPlan.saveCurrent(newPlan)
           }
-          setCurrentPlan(newPlan)
-          weeklyPlan.saveCurrent(newPlan)
-        }
+        } else {
+          // Load from localStorage if not authenticated
+          const saved = weeklyPlan.getCurrent()
+          if (saved && saved.slots) {
+            setCurrentPlan(saved)
+            setWeeklySlots(saved.slots)
+            setSelectedCategories(saved.categories || [])
+          } else {
+            // Initialize new plan
+            const weekStart = getWeekStart()
+            const newPlan = {
+              id: null,
+              createdAt: new Date().toISOString(),
+              weekStart,
+              categories: [],
+              slots: createEmptySlots(),
+            }
+            setCurrentPlan(newPlan)
+            weeklyPlan.saveCurrent(newPlan)
+          }
 
-        // Load saved plans list
-        const plans = weeklyPlan.get()
-        setSavedPlans(plans)
+          // Load saved plans list from localStorage
+          const plans = weeklyPlan.get()
+          setSavedPlans(plans)
+        }
       } catch (error) {
         console.error('Error loading current plan:', error)
       }
@@ -102,7 +155,7 @@ export default function Planner() {
       setCategories(cats)
     }
     loadCategories()
-  }, [getCategories])
+  }, [getCategories, user])
 
   // Persist current plan to localStorage whenever it changes
   const persistCurrentPlan = useCallback(() => {
@@ -113,16 +166,17 @@ export default function Planner() {
         categories: selectedCategories,
       }
       setCurrentPlan(updated)
+      // Always save to localStorage immediately
       weeklyPlan.saveCurrent(updated)
       
-      // Also save to Firestore if uid exists
-      if (uid) {
-        savePlanToFirestore(uid, updated).catch((err) => {
+      // Also save to Firestore if user is authenticated
+      if (user?.uid && updated.id) {
+        savePlanToFirestore(user.uid, updated).catch((err) => {
           console.warn('Failed to save to Firestore:', err)
         })
       }
     }
-  }, [currentPlan, weeklySlots, selectedCategories, uid])
+  }, [currentPlan, weeklySlots, selectedCategories, user])
 
   // Update weeklySlots and persist
   const updateSlots = useCallback((newSlots) => {
@@ -136,15 +190,17 @@ export default function Planner() {
           categories: selectedCategories,
         }
         setCurrentPlan(updated)
+        // Always save to localStorage immediately
         weeklyPlan.saveCurrent(updated)
-        if (uid) {
-          savePlanToFirestore(uid, updated).catch((err) => {
+        // Also save to Firestore if user is authenticated and plan has ID
+        if (user?.uid && updated.id) {
+          savePlanToFirestore(user.uid, updated).catch((err) => {
             console.warn('Failed to save to Firestore:', err)
           })
         }
       }
     }, 0)
-  }, [currentPlan, selectedCategories, uid])
+  }, [currentPlan, selectedCategories, user])
 
   // Toggle category selection
   const handleCategoryToggle = (category) => {
@@ -297,41 +353,74 @@ export default function Planner() {
 
     const planId = weeklyPlan.save(planToSave)
     if (planId) {
-      setCurrentPlan({ ...planToSave, id: planId })
+      const savedPlan = { ...planToSave, id: planId }
+      setCurrentPlan(savedPlan)
       
-      // Save to Firestore if uid exists
-      if (uid) {
+      // Save to Firestore if user is authenticated
+      if (user?.uid) {
         try {
-          await savePlanToFirestore(uid, { ...planToSave, id: planId })
+          await savePlanToFirestore(user.uid, savedPlan)
+          // Refresh saved plans from Firestore
+          const firestorePlans = await getPlansFromFirestore(user.uid)
+          setSavedPlans(firestorePlans)
         } catch (err) {
           console.warn('Failed to save to Firestore:', err)
+          // Fallback to localStorage plans
+          setSavedPlans(weeklyPlan.get())
         }
+      } else {
+        // Update from localStorage
+        setSavedPlans(weeklyPlan.get())
       }
 
-      setSavedPlans(weeklyPlan.get())
       setFeedback('Plan saved!')
       setTimeout(() => setFeedback(''), 3000)
     }
-  }, [currentPlan, weeklySlots, selectedCategories, uid])
+  }, [currentPlan, weeklySlots, selectedCategories, user])
 
   // Load plan from saved plans
   const handleLoadPlan = useCallback((plan) => {
-    setWeeklySlots(plan.slots)
+    setWeeklySlots(plan.slots || createEmptySlots())
     setSelectedCategories(plan.categories || [])
     setCurrentPlan(plan)
+    // Always save to localStorage
     weeklyPlan.saveCurrent(plan)
+    // Also sync to Firestore if authenticated
+    if (user?.uid && plan.id) {
+      savePlanToFirestore(user.uid, plan).catch((err) => {
+        console.warn('Failed to sync plan to Firestore:', err)
+      })
+    }
     setShowSaved(false)
     setFeedback('Plan loaded!')
     setTimeout(() => setFeedback(''), 2000)
-  }, [])
+  }, [user])
 
   // Delete plan
-  const handleDeletePlan = useCallback((planId) => {
+  const handleDeletePlan = useCallback(async (planId) => {
+    // Delete from localStorage
     weeklyPlan.delete(planId)
-    setSavedPlans(weeklyPlan.get())
+    
+    // Delete from Firestore if authenticated
+    if (user?.uid) {
+      try {
+        await deletePlanFromFirestore(user.uid, planId)
+        // Refresh from Firestore
+        const firestorePlans = await getPlansFromFirestore(user.uid)
+        setSavedPlans(firestorePlans)
+      } catch (err) {
+        console.warn('Failed to delete from Firestore:', err)
+        // Fallback to localStorage
+        setSavedPlans(weeklyPlan.get())
+      }
+    } else {
+      // Update from localStorage
+      setSavedPlans(weeklyPlan.get())
+    }
+    
     setFeedback('Plan deleted!')
     setTimeout(() => setFeedback(''), 2000)
-  }, [])
+  }, [user])
 
   // View slot recipe
   const handleViewSlot = useCallback((dayIndex, mealType) => {
