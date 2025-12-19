@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { onAuthStateChangedListener, signInWithEmail, signUpWithEmail, signInWithGoogle, signOutUser } from '../firebase/auth'
 import { performMigrationIfNeeded } from '../utils/migrateLocalData'
 
@@ -15,6 +15,8 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+  const pendingActionRef = useRef(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChangedListener((authUser) => {
@@ -27,6 +29,13 @@ export const AuthProvider = ({ children }) => {
           console.error('Migration error:', error)
           // Don't block user experience if migration fails
         })
+
+        // If there's a pending action and user just logged in, execute it
+        if (pendingActionRef.current) {
+          pendingActionRef.current()
+          pendingActionRef.current = null
+          setAuthModalOpen(false)
+        }
       }
     })
 
@@ -52,6 +61,33 @@ export const AuthProvider = ({ children }) => {
     await signOutUser()
   }
 
+  /**
+   * Require authentication before executing an action
+   * If user is authenticated, executes actionCallback immediately
+   * If not authenticated, opens auth modal and executes callback after login
+   * @param {Function} actionCallback - Function to execute after authentication
+   */
+  const requireAuth = (actionCallback) => {
+    if (user) {
+      // User is authenticated, execute immediately
+      actionCallback()
+    } else {
+      // User is not authenticated, open modal and queue action
+      pendingActionRef.current = actionCallback
+      setAuthModalOpen(true)
+    }
+  }
+
+  const handleAuthModalClose = () => {
+    setAuthModalOpen(false)
+    pendingActionRef.current = null
+  }
+
+  const handleAuthSuccess = () => {
+    // Action will be executed via useEffect when user state updates
+    // This is just for closing the modal
+  }
+
   const value = {
     user,
     loading,
@@ -59,6 +95,10 @@ export const AuthProvider = ({ children }) => {
     signup,
     loginWithGoogle,
     logout,
+    requireAuth,
+    authModalOpen,
+    handleAuthModalClose,
+    handleAuthSuccess,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

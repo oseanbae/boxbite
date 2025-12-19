@@ -4,12 +4,12 @@ export function SkeletonCard({ size = 'normal', variant }) {
   const isCompact = size === 'compact'
   const isPlanner = variant === 'planner'
   
-  // Planner variant uses fixed aspect ratio for consistency
+  // Fixed heights for consistency
   const imageHeight = isPlanner
     ? 'h-20' // Fixed height for planner
     : isCompact
     ? 'h-24'
-    : 'aspect-square'
+    : 'h-48' // Fixed height for normal cards
 
   return (
     <div className={`glass card-hover flex flex-col overflow-hidden rounded-xl shadow-sm ${isCompact ? 'p-2' : 'p-3'}`}>
@@ -27,12 +27,12 @@ export default function RecipeCard({ recipe, onSelect, actionSlot, size = 'norma
   const isPlanner = variant === 'planner'
   const [imageLoaded, setImageLoaded] = useState(false)
 
-  // Planner variant uses fixed aspect ratio for consistency
+  // Fixed heights for consistency
   const imageHeight = isPlanner
     ? 'h-20' // Fixed height for planner (matches PlannerSlot)
     : isCompact
     ? 'h-24'
-    : 'aspect-square'
+    : 'h-48' // Fixed height for normal cards
 
   return (
     <article

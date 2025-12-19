@@ -63,15 +63,6 @@ export default function PlannerSlot({
             {isLoading ? '...' : '🎲 Surprise'}
           </button>
           <button
-            onClick={() => {
-              setShowAddMenu(false)
-              if (onAdd) onAdd()
-            }}
-            className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:bg-slate-50 active:scale-[0.97] dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          >
-            Choose...
-          </button>
-          <button
             onClick={() => setShowAddMenu(false)}
             className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-500 transition-all duration-200 ease-out hover:bg-slate-50 active:scale-[0.97] dark:border-white/10 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
           >

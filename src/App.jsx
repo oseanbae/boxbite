@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import Header from './components/Header'
+import AuthGate from './components/AuthGate'
 import Home from './pages/Home'
 import RecipeDetail from './pages/RecipeDetail'
 import Favorites from './pages/Favorites'
@@ -41,6 +42,7 @@ function App() {
             <Route path="/signup" element={<SignUp />} />
           </Routes>
         </main>
+        <AuthGate />
       </div>
     </AuthProvider>
   )

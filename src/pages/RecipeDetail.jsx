@@ -10,30 +10,10 @@ import {
 } from '../firebase/firestoreHelpers'
 import { recent } from '../utils/recent'
 
-// LocalStorage fallback functions
-const storageKey = 'boxbite_favorites'
-
-const localFavorites = {
-  get: () => {
-    const data = localStorage.getItem(storageKey)
-    return data ? JSON.parse(data) : []
-  },
-  add: (recipe) => {
-    const existing = localFavorites.get()
-    if (existing.some((item) => item.id === recipe.id)) return
-    const updated = [...existing, recipe]
-    localStorage.setItem(storageKey, JSON.stringify(updated))
-  },
-  remove: (id) => {
-    const filtered = localFavorites.get().filter((item) => item.id !== id)
-    localStorage.setItem(storageKey, JSON.stringify(filtered))
-  },
-}
-
 export default function RecipeDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, requireAuth } = useAuth()
   const { getRecipeById } = useMealDB()
   const [recipe, setRecipe] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -58,8 +38,8 @@ export default function RecipeDetail() {
         const favs = await getFavoritesFromFirestore(user.uid)
         setFavorites(favs)
       } else {
-        const favs = localFavorites.get()
-        setFavorites(favs)
+        // No favorites for unauthenticated users
+        setFavorites([])
       }
     }
     loadFavorites()
@@ -67,30 +47,30 @@ export default function RecipeDetail() {
 
   const handleSave = async () => {
     if (!recipe) return
-    if (user?.uid) {
-      await saveFavoriteToFirestore(user.uid, recipe)
-    } else {
-      localFavorites.add(recipe)
-    }
-    setFavorites((prev) => {
-      const exists = prev.some((item) => item.id === recipe.id)
-      if (exists) return prev
-      return [...prev, recipe]
+    requireAuth(async () => {
+      if (user?.uid) {
+        await saveFavoriteToFirestore(user.uid, recipe)
+        setFavorites((prev) => {
+          const exists = prev.some((item) => item.id === recipe.id)
+          if (exists) return prev
+          return [...prev, recipe]
+        })
+        setToast('Recipe saved to favorites')
+        setTimeout(() => setToast(''), 2400)
+      }
     })
-    setToast('Recipe saved to favorites')
-    setTimeout(() => setToast(''), 2400)
   }
 
   const handleRemove = async () => {
     if (!recipe) return
-    if (user?.uid) {
-      await removeFavoriteFromFirestore(user.uid, recipe.id)
-    } else {
-      localFavorites.remove(recipe.id)
-    }
-    setFavorites((prev) => prev.filter((item) => item.id !== recipe.id))
-    setToast('Removed from favorites')
-    setTimeout(() => setToast(''), 2400)
+    requireAuth(async () => {
+      if (user?.uid) {
+        await removeFavoriteFromFirestore(user.uid, recipe.id)
+        setFavorites((prev) => prev.filter((item) => item.id !== recipe.id))
+        setToast('Removed from favorites')
+        setTimeout(() => setToast(''), 2400)
+      }
+    })
   }
 
   if (loading) {

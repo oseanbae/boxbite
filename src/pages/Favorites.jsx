@@ -8,29 +8,9 @@ import {
   saveFavoriteToFirestore,
 } from '../firebase/firestoreHelpers'
 
-// LocalStorage fallback functions
-const storageKey = 'boxbite_favorites'
-
-const localFavorites = {
-  get: () => {
-    const data = localStorage.getItem(storageKey)
-    return data ? JSON.parse(data) : []
-  },
-  add: (recipe) => {
-    const existing = localFavorites.get()
-    if (existing.some((item) => item.id === recipe.id)) return
-    const updated = [...existing, recipe]
-    localStorage.setItem(storageKey, JSON.stringify(updated))
-  },
-  remove: (id) => {
-    const filtered = localFavorites.get().filter((item) => item.id !== id)
-    localStorage.setItem(storageKey, JSON.stringify(filtered))
-  },
-}
-
 export default function Favorites() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, requireAuth } = useAuth()
   const [favorites, setFavorites] = useState([])
   const [loading, setLoading] = useState(true)
   const [feedback, setFeedback] = useState('')
@@ -42,9 +22,8 @@ export default function Favorites() {
         const data = await getFavoritesFromFirestore(user.uid)
         setFavorites(data)
       } else {
-        // Load from localStorage
-        const data = localFavorites.get()
-        setFavorites(data)
+        // No favorites for unauthenticated users
+        setFavorites([])
       }
       setLoading(false)
     }
@@ -52,24 +31,29 @@ export default function Favorites() {
   }, [user])
 
   const handleRemove = async (id) => {
-    if (user?.uid) {
-      await removeFavoriteFromFirestore(user.uid, id)
-    } else {
-      localFavorites.remove(id)
-    }
-    setFavorites((prev) => prev.filter((item) => item.id !== id))
-    setFeedback('Removed from favorites')
-    setTimeout(() => setFeedback(''), 2000)
+    requireAuth(async () => {
+      if (user?.uid) {
+        await removeFavoriteFromFirestore(user.uid, id)
+        setFavorites((prev) => prev.filter((item) => item.id !== id))
+        setFeedback('Removed from favorites')
+        setTimeout(() => setFeedback(''), 2000)
+      }
+    })
   }
 
   const handleSave = async (recipe) => {
-    if (user?.uid) {
-      await saveFavoriteToFirestore(user.uid, recipe)
-    } else {
-      localFavorites.add(recipe)
-    }
-    setFeedback('Saved to favorites')
-    setTimeout(() => setFeedback(''), 2000)
+    requireAuth(async () => {
+      if (user?.uid) {
+        await saveFavoriteToFirestore(user.uid, recipe)
+        setFavorites((prev) => {
+          const exists = prev.some((item) => item.id === recipe.id)
+          if (exists) return prev
+          return [...prev, recipe]
+        })
+        setFeedback('Saved to favorites')
+        setTimeout(() => setFeedback(''), 2000)
+      }
+    })
   }
 
   return (
@@ -82,8 +66,7 @@ export default function Favorites() {
           Your saved dishes
         </h2>
         <p className="max-w-2xl text-slate-600 dark:text-slate-300">
-          Saved recipes live in Firestore when authenticated. Otherwise they sit
-          safely in your browser using localStorage.
+          Your saved favorite recipes. Sign in to save and sync favorites across devices.
         </p>
       </div>
 

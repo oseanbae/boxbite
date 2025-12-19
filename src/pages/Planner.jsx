@@ -62,7 +62,7 @@ function getDateForDay(weekStart, dayIndex) {
 
 export default function Planner() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, requireAuth } = useAuth()
   const { getMultipleRandom, getCategories, getFilteredRecipes, getMultipleByCategories, getRandomRecipe, getRecipeById } = useMealDB()
   
   // Current working plan state
@@ -94,7 +94,7 @@ export default function Planner() {
             setWeeklySlots(saved.slots)
             setSelectedCategories(saved.categories || [])
             // Sync current plan to Firestore
-            if (saved.id) {
+            if (saved.id && user?.uid) {
               await savePlanToFirestore(user.uid, saved)
             }
           } else if (firestorePlans.length > 0) {
@@ -337,21 +337,23 @@ export default function Planner() {
 
   // Save plan to saved plans list
   const handleSavePlan = useCallback(async (name) => {
-    const planToSave = {
-      ...currentPlan,
-      slots: weeklySlots,
-      categories: selectedCategories,
-      weekStart: currentPlan?.weekStart || getWeekStart(),
-      name: name || `Plan ${new Date().toLocaleDateString()}`,
-    }
+    requireAuth(async () => {
+      if (!user?.uid) return
 
-    const planId = weeklyPlan.save(planToSave)
-    if (planId) {
-      const savedPlan = { ...planToSave, id: planId }
-      setCurrentPlan(savedPlan)
-      
-      // Save to Firestore if user is authenticated
-      if (user?.uid) {
+      const planToSave = {
+        ...currentPlan,
+        slots: weeklySlots,
+        categories: selectedCategories,
+        weekStart: currentPlan?.weekStart || getWeekStart(),
+        name: name || `Plan ${new Date().toLocaleDateString()}`,
+      }
+
+      const planId = weeklyPlan.save(planToSave)
+      if (planId) {
+        const savedPlan = { ...planToSave, id: planId }
+        setCurrentPlan(savedPlan)
+        
+        // Save to Firestore
         try {
           await savePlanToFirestore(user.uid, savedPlan)
           // Refresh saved plans from Firestore
@@ -362,17 +364,14 @@ export default function Planner() {
           // Fallback to localStorage plans
           setSavedPlans(weeklyPlan.get())
         }
-      } else {
-        // Update from localStorage
-        setSavedPlans(weeklyPlan.get())
-      }
 
-      setShowSaveDialog(false)
-      setPlanName('')
-      setFeedback('Plan saved!')
-      setTimeout(() => setFeedback(''), 3000)
-    }
-  }, [currentPlan, weeklySlots, selectedCategories, user])
+        setShowSaveDialog(false)
+        setPlanName('')
+        setFeedback('Plan saved!')
+        setTimeout(() => setFeedback(''), 3000)
+      }
+    })
+  }, [currentPlan, weeklySlots, selectedCategories, user, requireAuth])
 
   const handleSavePlanClick = useCallback(() => {
     const hasAnyRecipes = weeklySlots.some((day) =>
@@ -409,15 +408,17 @@ export default function Planner() {
     setShowSaved(false)
     setFeedback('Plan loaded!')
     setTimeout(() => setFeedback(''), 2000)
-  }, [user])
+  }, [user, requireAuth])
 
   // Delete plan
   const handleDeletePlan = useCallback(async (planId) => {
-    // Delete from localStorage
-    weeklyPlan.delete(planId)
-    
-    // Delete from Firestore if authenticated
-    if (user?.uid) {
+    requireAuth(async () => {
+      if (!user?.uid) return
+
+      // Delete from localStorage
+      weeklyPlan.delete(planId)
+      
+      // Delete from Firestore
       try {
         await deletePlanFromFirestore(user.uid, planId)
         // Refresh from Firestore
@@ -428,14 +429,11 @@ export default function Planner() {
         // Fallback to localStorage
         setSavedPlans(weeklyPlan.get())
       }
-    } else {
-      // Update from localStorage
-      setSavedPlans(weeklyPlan.get())
-    }
-    
-    setFeedback('Plan deleted!')
-    setTimeout(() => setFeedback(''), 2000)
-  }, [user])
+      
+      setFeedback('Plan deleted!')
+      setTimeout(() => setFeedback(''), 2000)
+    })
+  }, [user, requireAuth])
 
   // View slot recipe
   const handleViewSlot = useCallback((dayIndex, mealType) => {
