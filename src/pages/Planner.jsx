@@ -120,7 +120,7 @@ export default function Planner() {
             weeklyPlan.saveCurrent(newPlan)
           }
         } else {
-          // Load from localStorage if not authenticated
+          // Load from localStorage if not authenticated (temporary session only)
           const saved = weeklyPlan.getCurrent()
           if (saved && saved.slots) {
             setCurrentPlan(saved)
@@ -140,9 +140,8 @@ export default function Planner() {
             weeklyPlan.saveCurrent(newPlan)
           }
 
-          // Load saved plans list from localStorage
-          const plans = weeklyPlan.get()
-          setSavedPlans(plans)
+          // Do NOT load saved plans list for unauthenticated users
+          setSavedPlans([])
         }
       } catch (error) {
         console.error('Error loading current plan:', error)
@@ -394,20 +393,24 @@ export default function Planner() {
 
   // Load plan from saved plans
   const handleLoadPlan = useCallback((plan) => {
-    setWeeklySlots(plan.slots || createEmptySlots())
-    setSelectedCategories(plan.categories || [])
-    setCurrentPlan(plan)
-    // Always save to localStorage
-    weeklyPlan.saveCurrent(plan)
-    // Also sync to Firestore if authenticated
-    if (user?.uid && plan.id) {
-      savePlanToFirestore(user.uid, plan).catch((err) => {
-        console.warn('Failed to sync plan to Firestore:', err)
-      })
-    }
-    setShowSaved(false)
-    setFeedback('Plan loaded!')
-    setTimeout(() => setFeedback(''), 2000)
+    requireAuth(() => {
+      if (!user?.uid) return
+
+      setWeeklySlots(plan.slots || createEmptySlots())
+      setSelectedCategories(plan.categories || [])
+      setCurrentPlan(plan)
+      // Always save to localStorage
+      weeklyPlan.saveCurrent(plan)
+      // Also sync to Firestore if authenticated
+      if (plan.id) {
+        savePlanToFirestore(user.uid, plan).catch((err) => {
+          console.warn('Failed to sync plan to Firestore:', err)
+        })
+      }
+      setShowSaved(false)
+      setFeedback('Plan loaded!')
+      setTimeout(() => setFeedback(''), 2000)
+    })
   }, [user, requireAuth])
 
   // Delete plan
@@ -426,8 +429,14 @@ export default function Planner() {
         setSavedPlans(firestorePlans)
       } catch (err) {
         console.warn('Failed to delete from Firestore:', err)
-        // Fallback to localStorage
-        setSavedPlans(weeklyPlan.get())
+        // Refresh from Firestore again (don't use localStorage fallback)
+        try {
+          const firestorePlans = await getPlansFromFirestore(user.uid)
+          setSavedPlans(firestorePlans)
+        } catch (retryErr) {
+          console.error('Failed to refresh plans after delete:', retryErr)
+          setSavedPlans([])
+        }
       }
       
       setFeedback('Plan deleted!')
@@ -532,9 +541,18 @@ export default function Planner() {
       {showSaved && (
         <div className="glass mb-6 rounded-xl p-4 animate-fadeIn">
           <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
-            Saved Plans ({savedPlans.length})
+            Saved Plans {user?.uid ? `(${savedPlans.length})` : ''}
           </h3>
-          {savedPlans.length > 0 ? (
+          {!user?.uid ? (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:border-white/10 dark:bg-slate-900/50">
+              <p className="mb-2 text-sm text-slate-600 dark:text-slate-400">
+                Sign in to view and manage your saved weekly plans.
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-500">
+                You can still generate and plan meals, but saved plans require authentication.
+              </p>
+            </div>
+          ) : savedPlans.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {savedPlans.map((plan, index) => {
                 const recipeCount = plan.slots?.reduce(
@@ -674,7 +692,7 @@ export default function Planner() {
                     </div>
                   </td>
                   {MEAL_TYPES.map((mealType) => (
-                    <td key={mealType} className="p-3">
+                    <td key={mealType} className="p-3 w-1/3 min-w-[140px]">
                       <PlannerSlot
                         mealType={mealType}
                         recipe={daySlots[mealType]}

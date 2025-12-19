@@ -17,7 +17,7 @@ export default function PlannerCard({ day, recipe, onViewDetails, onRemove }) {
           {day}
         </p>
       </div>
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg">
+      <div className="relative h-48 w-full overflow-hidden rounded-lg">
         <img
           src={recipe.image}
           alt={recipe.name}
