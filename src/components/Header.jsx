@@ -48,7 +48,13 @@ export default function Header() {
           to="/" 
           className="group flex items-center gap-3 transition-transform duration-200 hover:scale-105"
         >
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-amber-400 shadow-lg shadow-fuchsia-900/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-fuchsia-900/60 group-hover:scale-110" />
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-amber-400 shadow-lg shadow-fuchsia-900/50 transition-all duration-300 group-hover:shadow-xl group-hover:shadow-fuchsia-900/60 group-hover:scale-110">
+            <img
+              src="/icon.png"
+              alt="BoxBite - Recipe Discovery App Logo"
+              className="h-7 w-7 object-contain drop-shadow-sm brightness-110 contrast-110 pointer-events-none dark:brightness-125 dark:contrast-115"
+            />
+          </div>
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500 transition-colors duration-200 group-hover:text-fuchsia-600 dark:text-slate-400 dark:group-hover:text-fuchsia-300">
               Recipe discovery
